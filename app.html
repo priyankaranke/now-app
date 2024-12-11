@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Now</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "San Francisco", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #1E1E2F;
+      color: #FFFFFF;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 500px;
+      background: #2C2C3C;
+      border-radius: 12px;
+      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.25);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], input[type="time"] {
+      width: calc(100% - 20px);
+      padding: 10px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 6px;
+      background-color: #38384F;
+      color: #FFFFFF;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #5B5F97;
+      color: #FFFFFF;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #6E72B3;
+    }
+
+    .completed {
+      margin-top: 20px;
+    }
+
+    .completed button {
+      margin: 10px 5px;
+    }
+
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: brightness(0) invert(1); /* Makes the icon white to match the text */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Now</h1>
+
+    <div id="set-alarm">
+      <div class="input-group">
+        <input type="text" id="intention" placeholder="What will you do?">
+      </div>
+      <div class="input-group">
+        <input type="time" id="alarm-time" value="">
+      </div>
+      <button onclick="setAlarm()">Set</button>
+    </div>
+
+    <div id="alarm-completed" class="completed" style="display: none;">
+      <p>Did you complete your task?</p>
+      <button onclick="taskCompleted(true)">Yes</button>
+      <button onclick="taskCompleted(false)">No</button>
+    </div>
+  </div>
+
+  <script>
+    let alarmTimeout;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      if (Notification.permission !== "granted") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+	    console.log("Notifications are enabled.");
+          } else {
+	    alert("Please enable notifications to use this feature.");
+          }
+        });
+      } else {
+        console.log("Notifications are already enabled.");
+      }
+    });
+
+    function notifyMe(title, message) {
+      if (!Notification) {
+        alert('Desktop notifications not available in your browser. Try Chromium.');
+        return;
+      }
+
+      if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+      } else {
+        const notification = new Notification(title, {
+          icon: './now_icon.webp',
+          body: message,
+        });
+
+        notification.onclick = function () {
+          window.focus();
+        };
+      }
+    }
+
+    function setAlarm() {
+      const intention = document.getElementById('intention').value;
+      const alarmTime = document.getElementById('alarm-time').value;
+
+      if (!intention || !alarmTime) {
+        alert('Please enter both an intention and a time.');
+        return;
+      }
+
+      const [hours, minutes] = alarmTime.split(':').map(Number);
+      const now = new Date();
+      const alarmDate = new Date();
+
+      alarmDate.setHours(hours, minutes, 0, 0);
+
+      if (alarmDate <= now) {
+        alarmDate.setDate(now.getDate() + 1);
+      }
+
+      const timeUntilAlarm = alarmDate - now;
+
+      clearTimeout(alarmTimeout);
+      alarmTimeout = setTimeout(() => {
+        notifyMe("", intention);
+        showCompletionPrompt();
+      }, timeUntilAlarm);
+
+      alert(`Alarm set for: ${alarmDate.toLocaleTimeString()}\nIntention: ${intention}`);
+    }
+
+    function showCompletionPrompt() {
+      document.getElementById('set-alarm').style.display = 'none';
+      document.getElementById('alarm-completed').style.display = 'block';
+    }
+
+    function taskCompleted(completed) {
+      document.getElementById('set-alarm').style.display = 'block';
+      document.getElementById('alarm-completed').style.display = 'none';
+      document.getElementById('intention').value = '';
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('alarm-time').value = `${hours}:${minutes}`;
+    }
+
+    // Set default time to current time
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('alarm-time').value = `${hours}:${minutes}`;
+  </script>
+</body>
+</html>
+
