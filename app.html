@@ -24,6 +24,11 @@
       box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.25);
       padding: 20px;
       text-align: center;
+
+      /* Adjust position higher */
+      position: relative;
+      top: -10%;
+      transform: translateY(-10%);
     }
 
     .input-group {
@@ -107,6 +112,20 @@
       }
     });
 
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        const currentElement = document.activeElement;
+
+        if (currentElement.id === 'intention') {
+          // Move to the alarm-time field
+          document.getElementById('alarm-time').focus();
+        } else if (currentElement.id === 'alarm-time') {
+          // Submit the form
+          setAlarm();
+        }
+      }
+    });
+
     function notifyMe(title, message) {
       if (!Notification) {
         alert('Desktop notifications not available in your browser. Try Chromium.');
@@ -120,7 +139,7 @@
           icon: './now_icon.webp',
           body: message,
         });
-
+   
         notification.onclick = function () {
           window.focus();
         };
@@ -153,8 +172,6 @@
         notifyMe("", intention);
         showCompletionPrompt();
       }, timeUntilAlarm);
-
-      alert(`Alarm set for: ${alarmDate.toLocaleTimeString()}\nIntention: ${intention}`);
     }
 
     function showCompletionPrompt() {
@@ -174,6 +191,7 @@
 
     // Set default time to current time
     const now = new Date();
+    now.setMinutes(now.getMinutes() + 30); // Add 30 minutes
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     document.getElementById('alarm-time').value = `${hours}:${minutes}`;
