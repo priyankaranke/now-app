@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Now</title>
+  <link rel="icon" type="image/webp" href="./now_icon.webp">
   <style>
     body {
       margin: 0;
@@ -59,29 +60,8 @@
       text-align: center;
       transform: translateY(-10vh);
       position: relative;
-      overflow: hidden;
-      transition: transform 0.2s ease-out;
       backdrop-filter: blur(10px);
-      perspective: 1000px;
-    }
-
-    /* Add shine effect */
-    .container::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.4) 0%,
-        rgba(255, 255, 255, 0.1) 30%,
-        rgba(255, 255, 255, 0) 60%
-      );
-      transform: rotate(45deg);
-      pointer-events: none;
-      transition: transform 0.2s ease-out;
+      transition: all 0.1s ease-out;
     }
 
     .input-group {
@@ -107,7 +87,7 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      transition: background-color 0.3s;
+      transition: all 0.2s ease-out;
       margin-top: 24px;
     }
 
@@ -137,7 +117,7 @@
       padding: 12px 24px;
       border-radius: 6px;
       opacity: 0;
-      transition: opacity 0.3s ease-in-out;
+      transition: opacity 0.15s ease-in-out, background-color 0.15s ease-in-out;
       pointer-events: none;
     }
 
@@ -162,7 +142,7 @@
     </div>
 
     <div id="alarm-completed" class="completed" style="display: none;">
-      <p>Did you complete your task?</p>
+      <p>Did you achieve what you set out to do?</p>
       <button onclick="taskCompleted(true)">Yes</button>
       <button onclick="taskCompleted(false)">No</button>
     </div>
@@ -171,6 +151,7 @@
   <script>
     let alarmTimeout;
     let currentTask = null;
+    let currentTaskTime = null;
 
     document.addEventListener('DOMContentLoaded', function () {
       if (Notification.permission !== "granted") {
@@ -220,6 +201,13 @@
       }
     }
 
+    function formatTimeToAMPM(time) {
+      const [hours, minutes] = time.split(':');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      return `${displayHours}:${minutes} ${ampm}`;
+    }
+
     function setAlarm() {
       const intention = document.getElementById('intention').value;
       const alarmTime = document.getElementById('alarm-time').value;
@@ -229,9 +217,16 @@
         return;
       }
 
-      if (currentTask) {
+      const [hours, minutes] = alarmTime.split(':').map(Number);
+      const now = new Date();
+      const alarmDate = new Date();
+      alarmDate.setHours(hours, minutes, 0, 0);
+
+      // Check if the time is in the past
+      if (alarmDate < now) {
         const toast = document.getElementById('toast');
-        toast.textContent = `You already have an intention set: "${currentTask}" scheduled for ${alarmTime}`;
+        toast.style.backgroundColor = '#FF4B4B';  // Red for warning
+        toast.textContent = 'Please make sure your intention is for the future';
         toast.classList.add('show');
         setTimeout(() => {
           toast.classList.remove('show');
@@ -239,13 +234,15 @@
         return;
       }
 
-      const [hours, minutes] = alarmTime.split(':').map(Number);
-      const now = new Date();
-      const alarmDate = new Date();
-      alarmDate.setHours(hours, minutes, 0, 0);
-
-      if (alarmDate <= now) {
-        alarmDate.setDate(now.getDate() + 1);
+      if (currentTask) {
+        const toast = document.getElementById('toast');
+        toast.style.backgroundColor = '#D35400';
+        toast.textContent = `You already have an intention set: "${currentTask}" scheduled for ${formatTimeToAMPM(currentTaskTime)}`;
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+        return;
       }
 
       const timeUntilAlarm = alarmDate - now;
@@ -257,10 +254,12 @@
       }, timeUntilAlarm);
 
       currentTask = intention;
+      currentTaskTime = alarmTime;
       
       // Show success toast
       const toast = document.getElementById('toast');
-      toast.textContent = `Intention set: "${intention}" for ${alarmTime}`;
+      toast.style.backgroundColor = '#4CAF50';
+      toast.textContent = `Intention set: "${intention}" for ${formatTimeToAMPM(alarmTime)}`;
       toast.classList.add('show');
       setTimeout(() => {
         toast.classList.remove('show');
@@ -274,7 +273,7 @@
 
     function taskCompleted(completed) {
       currentTask = null;
-      document.getElementById('current-task').style.display = 'none';
+      currentTaskTime = null;
       
       document.getElementById('set-alarm').style.display = 'block';
       document.getElementById('alarm-completed').style.display = 'none';
@@ -291,44 +290,7 @@
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     document.getElementById('alarm-time').value = `${hours}:${minutes}`;
-
-    document.addEventListener('mousemove', (e) => {
-      const container = document.querySelector('.container');
-      const rect = container.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      // Subtle card tilt
-      const moveX = (e.clientX - centerX) / 200;
-      const moveY = (e.clientY - centerY) / 200;
-      
-      // Calculate angle for shine based on mouse position
-      const angleX = ((e.clientX - rect.left) / rect.width - 0.5) * 40;
-      const angleY = ((e.clientY - rect.top) / rect.height - 0.5) * 40;
-      
-      container.style.transform = `
-        translateY(-10vh)
-        perspective(1000px)
-        rotateY(${moveX}deg)
-        rotateX(${-moveY}deg)
-      `;
-      
-      // Move shine based on mouse position
-      container.style.setProperty('--shine-x', `${angleX}deg`);
-      container.style.setProperty('--shine-y', `${angleY}deg`);
-      
-      // Update shine position
-      container.querySelector('::before').style.transform = 
-        `rotate(45deg) translate(${angleX}%, ${angleY}%)`;
-    });
-
-    // Reset transform when mouse leaves the window
-    document.addEventListener('mouseleave', () => {
-      const container = document.querySelector('.container');
-      container.style.transform = 'translateY(-10vh)';
-    });
   </script>
   <div id="toast" class="toast"></div>
 </body>
 </html>
-
