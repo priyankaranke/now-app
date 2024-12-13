@@ -61,7 +61,6 @@
       transform: translateY(-10vh);
       position: relative;
       backdrop-filter: blur(10px);
-      transition: all 0.1s ease-out;
     }
 
     .input-group {
@@ -87,7 +86,6 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s ease-out;
       margin-top: 24px;
     }
 
@@ -117,6 +115,7 @@
       border-radius: 6px;
       opacity: 0;
       pointer-events: none;
+      transition: opacity 0.15s ease-out;
     }
 
     .toast.show {
@@ -150,6 +149,7 @@
     let alarmTimeout;
     let currentTask = null;
     let currentTaskTime = null;
+    let toastTimeout;
 
     document.addEventListener('DOMContentLoaded', function () {
       if (Notification.permission !== "granted") {
@@ -208,12 +208,22 @@
 
     function showToast(message, color) {
       const toast = document.getElementById('toast');
+      
+      // Clear any existing timeout and hide current toast
+      clearTimeout(toastTimeout);
+      toast.classList.remove('show');
+      
+      // Set new color and message while toast is hidden
       toast.style.backgroundColor = color;
       toast.textContent = message;
-      toast.classList.add('show');
+      
+      // Small delay to ensure color is set before showing
       setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
+        toast.classList.add('show');
+        toastTimeout = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }, 10);
     }
 
     function setAlarm() {
@@ -225,6 +235,11 @@
         return;
       }
 
+      if (currentTask) {
+        showToast(`You already have an intention set: "${currentTask}" scheduled for ${formatTimeToAMPM(currentTaskTime)}`, '#D35400');
+        return;
+      }
+
       const [hours, minutes] = alarmTime.split(':').map(Number);
       const now = new Date();
       const alarmDate = new Date();
@@ -233,11 +248,6 @@
       // Check if the time is in the past
       if (alarmDate < now) {
         showToast('Please make sure your intention is for the future', '#FF4B4B');
-        return;
-      }
-
-      if (currentTask) {
-        showToast(`You already have an intention set: "${currentTask}" scheduled for ${formatTimeToAMPM(currentTaskTime)}`, '#D35400');
         return;
       }
 
@@ -260,6 +270,13 @@
     }
 
     function taskCompleted(completed) {
+      const completionMessage = completed 
+        ? "Great job! 🎉" 
+        : "That's okay - just set your next intention!";
+      const toastColor = completed ? '#2ECC71' : '#7F8C8D';
+      
+      showToast(completionMessage, toastColor);
+      
       currentTask = null;
       currentTaskTime = null;
       
